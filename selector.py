@@ -2,8 +2,12 @@ import tkinter as tk
 import re
 from tkinter import ttk
 from api import fetch_events, fetch_courts_at_event, fetch_matches_on_court
-from obs import obs
+from websocket import connect_to_websocket, disconnect_from_websocket
 
+def on_close():
+    disconnect_from_websocket()
+    exit()
+    
 def on_event_change(event):
     selected_event = event_dropdown.get()  # Corrected line
     # Extract event ID from the selected event string
@@ -14,6 +18,7 @@ def on_event_change(event):
     # Clear the matches dropdown
     court_dropdown.set('')
     match_dropdown.set('')
+    disconnect_from_websocket()
     
 def on_court_change(event):
     selected_court = court_dropdown.get()  # Corrected line
@@ -24,12 +29,16 @@ def on_court_change(event):
     
     # Clear the matches dropdown
     match_dropdown.set('')
+    disconnect_from_websocket()
+    
+def on_match_change(event):
+    disconnect_from_websocket()
     
 def confirm_selection():
     selected_match = match_dropdown.get()  # Corrected line
     # Extract match ID from the selected court string
     selected_match_id = re.search(r'\(ID: (\d+)\)', selected_match).group(1)
-    obs(selected_match_id)
+    connect_to_websocket(selected_match_id)
 
 def selector():
     root = tk.Tk()
@@ -58,11 +67,11 @@ def selector():
     global match_dropdown  # Define as global
     match_dropdown = ttk.Combobox(root, values=[], state="readonly", width=40)
     match_dropdown.pack()
+    match_dropdown.bind("<<ComboboxSelected>>", on_match_change)
 
     # Create a confirmation button
     confirm_button = ttk.Button(root, text="Confirm Selection", command=confirm_selection)
-    confirm_button.pack(pady=10)
+    confirm_button.pack(pady=10)    
     
+    #root.protocol("WM_DELETE_WINDOW", lambda: on_close)
     root.mainloop()
-
-selector()
